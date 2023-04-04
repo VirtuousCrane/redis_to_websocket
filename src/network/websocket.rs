@@ -1,6 +1,6 @@
 use std::{net::{TcpListener, TcpStream}, sync::{mpsc::{Receiver, self, Sender}, Arc, Mutex}, thread::{JoinHandle, self}, error::Error};
 
-use log::warn;
+use log::{warn, info};
 use redis::Msg;
 use tungstenite::{WebSocket, Message};
 
@@ -74,6 +74,7 @@ impl WebSocketHandlerWorker {
                         continue;
                     }
                 };
+                info!("New WebSocket Connection");
                 ws_list.push(websocket);
             }
         })
@@ -106,12 +107,20 @@ impl WebSocketHandlerWorker {
             };
             
             let payload_as_message = Message::Text(payload);
-            for ws in ws_list.iter_mut() {
+            let mut sockets_to_remove: Vec<usize> = Vec::new();
+            for (i, ws) in ws_list.iter_mut().enumerate() {
                 if let Err(e) = ws.write_message(payload_as_message.clone()) {
                     warn!("Failed to write message to WebSocket: {}", e.to_string());
+                    info!("Removing Dead WebSocket Connection...");
+                    sockets_to_remove.push(i);
                     continue;
                 }
             }
+            
+            for idx in sockets_to_remove {
+                ws_list.remove(idx);
+            }
+            
         }
     }
 }
