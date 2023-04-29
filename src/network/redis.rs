@@ -42,11 +42,15 @@ impl RedisSubscriberWorker {
     
     pub fn start(&mut self) {
         let mut pubsub = self.connection.as_pubsub();
-        if let Err(e) = pubsub.subscribe("MOTIONCAPTURE") {
-            warn!("Failed to Subscribe to Redis: {}", e.to_string());
-            return;
+        let sub_topics = vec!["tag:motioncapture.uwb", "tag:motioncapture.nodemcu.ARM-L", "tag:motioncapture.nodemcu.ARM-R", "tag:motioncapture.nodemcu.FOREARM-L", "tag:motioncapture.nodemcu.FOREARM-L", "tag:motioncapture.nodemcu.HEAD", "tag:motioncapture.nodemcu.LEG-L", "tag:motioncapture.nodemcu.LEG-R", "tag:motioncapture.nodemcu.THICC-L", "tag:motioncapture.nodemcu.THICC-R"]; 
+
+        for topic in sub_topics {
+            if let Err(e) = pubsub.subscribe(topic) {
+                warn!("Failed to Subscribe to Redis: {}", e.to_string());
+                return;
+            }
         }
-        
+                
         loop {
             let msg = pubsub.get_message();
             let payload = match msg {
